@@ -3,7 +3,7 @@ tests/test_server.py
 Full integration test suite — runs against a live server.
 Usage:
     # Start server first:
-    uvicorn server:app --port 7860 &
+    uvicorn server.app:app --port 7860 &
     # Then:
     python -m pytest tests/ -v
 """

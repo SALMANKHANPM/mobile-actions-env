@@ -14,7 +14,7 @@ COPY pyproject.toml  .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ── Application code ─────────────────────────────────────────────────────
-COPY server.py              ./server.py
+COPY server/                ./server/
 COPY openenv.yaml           ./openenv.yaml
 COPY inference.py           ./inference.py
 COPY test_server.py         ./test_server.py
@@ -31,7 +31,7 @@ EXPOSE 7860
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -sf http://localhost:7860/health || exit 1
 
-CMD ["uvicorn", "server:app", \
+CMD ["uvicorn", "server.app:app", \
      "--host", "0.0.0.0", \
      "--port", "7860", \
      "--workers", "1", \
