@@ -1,0 +1,120 @@
+name: mobile-actions-env
+version: "1.0.0"
+description: >
+  OpenEnv environment for LLM tool-calling on mobile, built on
+  google/mobile-actions. Agents learn to call the right mobile API
+  (calendar, maps, email, music, contacts) from natural-language user
+  requests through graded reward signals.
+
+authors:
+  - name: OpenEnv Submission
+
+license: Apache-2.0
+
+# ── Runtime ────────────────────────────────────────────────────────────────
+runtime:
+  image: openenv-mobile-actions:latest
+  entrypoint: ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "7860"]
+  port: 7860
+  resources:
+    vcpu: 2
+    memory_gb: 8
+
+# ── Environment endpoints ─────────────────────────────────────────────────
+endpoints:
+  reset:
+    path: /reset
+    method: POST
+    description: Start a new episode. Returns first Observation.
+  step:
+    path: /step
+    method: POST
+    description: Submit a tool-call action. Returns Observation, reward, done, info.
+  state:
+    path: /state
+    method: GET
+    description: Read-only snapshot of full internal state.
+
+# ── Tasks ─────────────────────────────────────────────────────────────────
+tasks:
+  - id: calendar_scheduling
+    name: Calendar Scheduling
+    description: >
+      Agent receives a natural-language scheduling request and must call
+      create_calendar_event with correct title and datetime fields.
+    grader: graders/calendar_grader.py
+    max_steps: 5
+    reward_range: [-0.5, 1.0]
+
+  - id: map_navigation
+    name: Map & Navigation
+    description: >
+      Agent receives a location-lookup request and must call show_map
+      with a relevant query argument.
+    grader: graders/maps_grader.py
+    max_steps: 5
+    reward_range: [-0.5, 1.0]
+
+  - id: email_communication
+    name: Email Communication
+    description: >
+      Agent must call send_email with correct recipient (to) and subject.
+    grader: graders/email_grader.py
+    max_steps: 5
+    reward_range: [-0.5, 1.0]
+
+  - id: media_control
+    name: Media & Alarms
+    description: >
+      Agent must call play_music or set_alarm given the user request.
+    grader: graders/media_grader.py
+    max_steps: 5
+    reward_range: [-0.5, 1.0]
+
+  - id: multi_turn
+    name: Multi-Turn Tool Calling
+    description: >
+      Agent handles a two-turn conversation requiring two sequential tool
+      calls (e.g. schedule + notify).
+    grader: graders/multiturn_grader.py
+    max_steps: 10
+    reward_range: [-1.0, 2.0]
+
+# ── Observation schema ────────────────────────────────────────────────────
+observation:
+  type: object
+  properties:
+    messages:
+      type: array
+      description: Full conversation history (OpenAI message format)
+    available_tools:
+      type: array
+      description: Tool schemas the agent may call (OpenAI tools format)
+    turn_index:
+      type: integer
+    metadata:
+      type: string
+      nullable: true
+
+# ── Action schema ─────────────────────────────────────────────────────────
+action:
+  type: object
+  required: [name, arguments]
+  properties:
+    name:
+      type: string
+      description: Tool name to invoke
+    arguments:
+      type: object
+      description: Key-value arguments for the tool
+
+# ── Reward semantics ──────────────────────────────────────────────────────
+reward:
+  description: >
+    Graded reward in [-0.5, 1.0] per step.
+    +1.0 exact name + matching arg values
+    +0.6 exact name + all required args present (values differ)
+    +0.3 exact name + partial required args
+     0.0 wrong tool name (but in action space)
+    -0.25 hallucinated tool (not in action space)
+    -0.50 schema violation (missing required param / bad type)
