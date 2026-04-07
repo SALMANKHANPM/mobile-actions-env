@@ -36,7 +36,7 @@ def grade(episode_result: Dict) -> float:
         structural += 0.30
 
     final = 0.60 * structural + 0.40 * base_score
-    return round(min(1.0, max(0.0, final)), 4)
+    return round(min(0.999, max(0.001, final)), 4)
 
 
 if __name__ == "__main__":

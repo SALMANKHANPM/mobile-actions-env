@@ -47,7 +47,7 @@ def grade(episode_result: Dict) -> float:
             structural += _score_action(actions[i], expected) * 0.5  # each turn = 0.5 weight
 
     final = 0.60 * structural + 0.40 * base_score
-    return round(min(1.0, max(0.0, final)), 4)
+    return round(min(0.999, max(0.001, final)), 4)
 
 
 if __name__ == "__main__":
