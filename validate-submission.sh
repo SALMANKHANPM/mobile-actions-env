@@ -143,15 +143,27 @@ else
 fi
 
 log "  Found Dockerfile in $DOCKER_CONTEXT"
+log "  Building (timeout=${DOCKER_BUILD_TIMEOUT}s) — output below:"
+printf "\n"
 
-BUILD_OK=false
-BUILD_OUTPUT=$(run_with_timeout "$DOCKER_BUILD_TIMEOUT" docker build "$DOCKER_CONTEXT" 2>&1) && BUILD_OK=true
+# Stream docker output directly to console so it never appears frozen
+docker build --progress=plain "$DOCKER_CONTEXT" 2>&1 &
+DOCKER_PID=$!
 
-if [ "$BUILD_OK" = true ]; then
+# macOS-compatible timeout watcher
+( sleep "$DOCKER_BUILD_TIMEOUT" && kill "$DOCKER_PID" 2>/dev/null && log "Docker build timed out after ${DOCKER_BUILD_TIMEOUT}s" ) &
+WATCHER_PID=$!
+
+wait "$DOCKER_PID" 2>/dev/null
+DOCKER_EXIT=$?
+kill "$WATCHER_PID" 2>/dev/null
+wait "$WATCHER_PID" 2>/dev/null
+
+printf "\n"
+if [ "$DOCKER_EXIT" -eq 0 ]; then
   pass "Docker build succeeded"
 else
-  fail "Docker build failed (timeout=${DOCKER_BUILD_TIMEOUT}s)"
-  printf "%s\n" "$BUILD_OUTPUT" | tail -20
+  fail "Docker build failed (exit=$DOCKER_EXIT, timeout=${DOCKER_BUILD_TIMEOUT}s)"
   stop_at "Step 2"
 fi
 
