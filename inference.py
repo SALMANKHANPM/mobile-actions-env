@@ -315,7 +315,7 @@ def run_episode(
         # Using the same _norm logic as the graders but applied to cumulative mean.
         cum_reward = sum(rewards)
         mean_r     = cum_reward / max(steps_taken, 1)
-        score      = max(0.0, min(1.0, (mean_r - (-0.5)) / (1.0 - (-0.5))))
+        score      = max(0.001, min(0.999, (mean_r - (-0.5)) / (1.0 - (-0.5))))
         success    = score >= SUCCESS_SCORE_THRESHOLD
 
     finally:
