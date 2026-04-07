@@ -650,3 +650,20 @@ def state():
         metadata          = _state.meta,
         elapsed_ms        = round(elapsed_ms, 2),
     )
+
+
+def main():
+    """Entry point for the openenv-core server runner."""
+    import uvicorn
+    uvicorn.run(
+        "server.app:app",
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "7860")),
+        workers=1,
+        log_level="info",
+    )
+
+
+if __name__ == "__main__":
+    main()
+
